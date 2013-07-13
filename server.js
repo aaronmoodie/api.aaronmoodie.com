@@ -22,21 +22,28 @@ var lastfmURL = "http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums" +
 var app = express(express.logger(), express.bodyParser());
 
 
-var to64 = function(url) {
+var urlToBase64 = function(url) {
   var deferred = Q.defer();
-  return request({
+  request({
     uri: url,
     encoding: 'binary'
   }, function(error, response, body) {
     if (!error && response.statusCode === 200) {
       var data_uri_prefix = "data:" + response.headers["content-type"] + ";base64,";
       var image = new Buffer(body.toString(), "binary").toString("base64");
-      image = data_uri_prefix + image;
-      deferred.resolve(image);
-      return deferred.promise;
+      deferred.resolve(data_uri_prefix + image);
     }
   });
+  return deferred.promise;
 }
+
+var convertImages = function(albums) {
+  var results = [];
+  for (var i = 0, l = albums.length; i < l; i++) {
+    results.push(urlToBase64(albums[i].albumImage));
+  }
+  return results;
+};
 
 var parseJSON = function(data) {
   var json = JSON.parse(data),
@@ -57,7 +64,7 @@ var parseJSON = function(data) {
   }
 
   return albums;
-}
+};
 
 app.get("/", function(req, res) {
   if (req.param("url")) {
@@ -79,26 +86,14 @@ app.get("/json", function(req, res) {
 
       albums = parseJSON(body);
 
-      // for (var i = 0; i < albums.length; i++) {
-      //   promise = to64(albums[i].albumImage, i);
-      //   promise.then(function(data) {
-      //       albums[data.index].albumImage = data.image;
-      //   });
-      //   promises.push(promise);
-      // }
-      // Q.all(promises).then(res.send(albums));
-
-
-      Q.all([
-          to64(albums[0].albumImage)
-      ]).then(function(data) {
-          res.send(data);
+      Q.allSettled(convertImages(albums))
+      .then(function(results) {
+         for (var i = 0, l = results.length; i < l; i++) {
+           albums[i].albumImage = results[i].value;
+         }
+         // Render the final output
+         res.send(albums);
       });
-
-
-      // to64(albums[0].albumImage, 0).then(function(result) {
-      //     console.log(result);
-      // });
 
     }
   });
