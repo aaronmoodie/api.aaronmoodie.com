@@ -1,0 +1,12 @@
+{
+  "name": "api.aaronmoodie.com",
+  "description": "api for aaronmoodie.com",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "3.3.0",
+    "request": "2.22.0",
+    "bufferlist": "0.1.0",
+    "q": "0.9.6"
+  }
+}
