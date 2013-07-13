@@ -56,7 +56,7 @@ var urlToBase64 = function(url) {
     }
   });
   return deferred.promise;
-}
+};
 
 var convertImages = function(albums) {
   var results = [];
@@ -64,7 +64,7 @@ var convertImages = function(albums) {
     results.push(urlToBase64(albums[i].albumImage));
   }
   return results;
-}
+};
 
 var getJSON = function(url) {
   var deferred = Q.defer();
@@ -77,7 +77,7 @@ var getJSON = function(url) {
     }
   });
   return deferred.promise;
-}
+};
 
 app.get("/", function(req, res) {
   if (req.param("url")) {
