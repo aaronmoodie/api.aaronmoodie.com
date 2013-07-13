@@ -43,24 +43,6 @@ var parseJSON = function(data) {
   return albums;
 }
 
-var httpGet = function (opts) {
-  var deferred = Q.defer();
-  http.get(opts, deferred.resolve);
-  return deferred.promise;
-};
-
-var loadBody = function (res) {
-  var deferred = Q.defer();
-  var body = "";
-  res.on("data", function (chunk) {
-    body += chunk;
-  });
-  res.on("end", function () {
-    deferred.resolve(body);
-  });
-  return deferred.promise;
-};
-
 var urlToBase64 = function(url) {
   var deferred = Q.defer();
   request({
@@ -84,6 +66,19 @@ var collectBase64Promises = function(albums) {
   return arr;
 }
 
+var getJSON = function(url) {
+  var deferred = Q.defer();
+  request({
+    uri: url,
+    encoding: 'binary'
+  }, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+      deferred.resolve(body);
+    }
+  });
+  return deferred.promise;
+}
+
 app.get("/", function(req, res) {
   if (req.param("url")) {
     var image = to64(req.param("url"));
@@ -95,9 +90,9 @@ app.get("/", function(req, res) {
 
 app.get("/json", function(req, res) {
   var albums;
-  httpGet(lastfmURL).then(loadBody)
-  .then(function(body) {
-    albums = parseJSON(body);
+  getJSON(lastfmURL).
+  then(function(json) {
+    var albums = parseJSON(json);
     Q.allSettled(collectBase64Promises(albums))
     .then(function(results) {
       for (var i = 0, l = results.length; i < l; i++) {
@@ -106,7 +101,7 @@ app.get("/json", function(req, res) {
       // Render the final output
       res.send(albums);
     });
-  });
+  })
 });
 
 app.listen(3333);
