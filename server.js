@@ -81,8 +81,10 @@ var getJSON = function(url) {
 
 app.get("/", function(req, res) {
   if (req.param("url")) {
-    var image = to64(req.param("url"));
-    return res.send("<img src=\"" + image + "\"/>");
+    urlToBase64(req.param("url"))
+    .then(function(image){
+      return res.send("<img src=\"" + image + "\"/>");
+    });
   } else {
     return res.send(":)");
   }
