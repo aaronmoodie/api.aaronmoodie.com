@@ -22,6 +22,35 @@ var lastfmURL = "http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums" +
  
 var app = express(express.logger(), express.bodyParser());
 
+// take image url
+// return base64 image
+var urlToBase64 = function(url) {
+  var deferred = Q.defer();
+  request({
+    uri: url,
+    encoding: 'binary'
+  }, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+      var data_uri_prefix = "data:" + response.headers["content-type"] + ";base64,";
+      var image = new Buffer(body.toString(), "binary").toString("base64");
+      deferred.resolve(data_uri_prefix + image);
+    }
+  });
+  return deferred.promise;
+};
+
+// take array of objects with img url 
+// return array of base64 images
+var convertImages = function(albums) {
+  var results = [];
+  for (var i = 0, l = albums.length; i < l; i++) {
+    results.push(urlToBase64(albums[i].albumImage));
+  }
+  return results;
+};
+
+// take raw last.fm JSON
+// return formatted JSON
 var parseJSON = function(data) {
   var json = JSON.parse(data),
     albums = [],
@@ -43,46 +72,27 @@ var parseJSON = function(data) {
   return albums;
 };
 
-var urlToBase64 = function(url) {
+// take url with params
+// return JSON
+var getJSON = function(url, parser) {
   var deferred = Q.defer();
   request({
     uri: url,
     encoding: 'binary'
   }, function(error, response, body) {
     if (!error && response.statusCode === 200) {
-      var data_uri_prefix = "data:" + response.headers["content-type"] + ";base64,";
-      var image = new Buffer(body.toString(), "binary").toString("base64");
-      deferred.resolve(data_uri_prefix + image);
+      deferred.resolve(parser(body));
     }
   });
   return deferred.promise;
 };
 
-var convertImages = function(albums) {
-  var results = [];
-  for (var i = 0, l = albums.length; i < l; i++) {
-    results.push(urlToBase64(albums[i].albumImage));
-  }
-  return results;
-};
 
-var getJSON = function(url) {
-  var deferred = Q.defer();
-  request({
-    uri: url,
-    encoding: 'binary'
-  }, function(error, response, body) {
-    if (!error && response.statusCode === 200) {
-      deferred.resolve(body);
-    }
-  });
-  return deferred.promise;
-};
 
 app.get("/", function(req, res) {
   if (req.param("url")) {
-    urlToBase64(req.param("url"))
-    .then(function(image){
+    urlToBase64(req.param("url")).
+    then(function(image){
       return res.send("<img src=\"" + image + "\"/>");
     });
   } else {
@@ -90,11 +100,10 @@ app.get("/", function(req, res) {
   }
 });
 
-app.get("/json", function(req, res) {
+app.get("/lastfm/gettopalbums", function(req, res) {
   var albums;
-  getJSON(lastfmURL).
-  then(function(json) {
-    var albums = parseJSON(json);
+  getJSON(lastfmURL, parseJSON).
+  then(function(albums) {
     Q.allSettled(convertImages(albums))
     .then(function(results) {
       for (var i = 0, l = results.length; i < l; i++) {
