@@ -3,17 +3,10 @@ var express = require('express'),
   BufferList = require('bufferlist').BufferList,
   Q = require('q'),
   http = require('http'),
-  sys = require('sys');
+  sys = require('sys'),
+  lastfm = require('./lastfm.js').params;
 
 var port = process.env.PORT || 5000;
-
-var lastfm = {
-  "api_key":"02959597ad6f8c9cded40346193df3c3",
-  "user":"aaronmoodie",
-  "format":"json",
-  "period":"7day",
-  "limit":10
-};
 
 var lastfmURL = "http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums" + 
   "&user="    + lastfm.user + 
