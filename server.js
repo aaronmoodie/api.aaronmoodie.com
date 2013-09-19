@@ -5,6 +5,8 @@ var express = require('express'),
   http = require('http'),
   sys = require('sys');
 
+var port = process.env.PORT || 5000;
+
 var lastfm = {
   "api_key":"02959597ad6f8c9cded40346193df3c3",
   "user":"aaronmoodie",
@@ -115,4 +117,6 @@ app.get("/lastfm/gettopalbums", function(req, res) {
   })
 });
 
-app.listen(3333);
+app.listen(port, function() {
+  console.log("Listening on " + port);
+});
